@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="A dashboard for tracking contributor projects.">
+    <title>Project Pulse</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <a class="skip-link" href="#projects">Skip to projects</a>
+
+    <main class="dashboard">
+      <header class="dashboard-header">
+        <div>
+          <p class="dashboard-eyebrow">Contributor workspace</p>
+          <h1 class="dashboard-title">Project Pulse</h1>
+          <p class="dashboard-description">
+            A clear view of the projects contributors are moving forward together.
+          </p>
+        </div>
+        <p class="dashboard-updated">Local project overview</p>
+      </header>
+
+      <section class="projects-section" id="projects" aria-labelledby="projects-heading">
+        <h2 class="section-heading" id="projects-heading">Current projects</h2>
+        <div id="data-status" role="status" aria-live="polite" aria-atomic="true">
+          Loading project data…
+        </div>
+        <ul class="project-grid" id="project-list" aria-describedby="data-status"></ul>
+      </section>
+    </main>
+
+    <script>
+      "use strict";
+
+      const requiredFields = [
+        "name",
+        "owner",
+        "status",
+        "recentActivity",
+        "priority",
+        "summary"
+      ];
+      const projectList = document.getElementById("project-list");
+      const dataStatus = document.getElementById("data-status");
+
+      class DataContractError extends Error {}
+      class DataFetchError extends Error {}
+
+      function createElement(tagName, className, text) {
+        const element = document.createElement(tagName);
+        if (className) {
+          element.className = className;
+        }
+        if (text !== undefined) {
+          element.textContent = text;
+        }
+        return element;
+      }
+
+      function normalizeModifier(value) {
+        return value
+          .toLowerCase()
+          .trim()
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/^-+|-+$/g, "") || "unknown";
+      }
+
+      function setStatus(message) {
+        dataStatus.textContent = message;
+      }
+
+      function showState(kind, title, message) {
+        const state = createElement("li", "data-state " + kind);
+        const stateTitle = createElement("h3", "state-title", title);
+        const stateMessage = createElement("p", "state-message", message);
+
+        state.append(stateTitle, stateMessage);
+        projectList.replaceChildren(state);
+        setStatus(title + ". " + message);
+      }
+
+      function createMetadataItem(label, value, icon) {
+        const item = createElement("div", "metadata-item");
+        const iconElement = createElement("span", "metadata-icon", icon);
+        const content = createElement("div", "metadata-content");
+        const term = createElement("dt", "metadata-label", label);
+        const definition = createElement("dd", "metadata-value", value);
+
+        iconElement.setAttribute("aria-hidden", "true");
+        content.append(term, definition);
+        item.append(iconElement, content);
+        return item;
+      }
+
+      function createProjectCard(project) {
+        const card = createElement("li", "project-card");
+        const header = createElement("div", "project-card-header");
+        const title = createElement("h3", "project-card-title", project.name);
+        const status = createElement(
+          "span",
+          "status-badge status-" + normalizeModifier(project.status),
+          "Status: " + project.status
+        );
+        const summary = createElement("p", "project-summary", project.summary);
+        const metadata = createElement("dl", "project-metadata");
+        const footer = createElement("footer", "project-card-footer");
+        const priority = createElement(
+          "span",
+          "priority-badge priority-" + normalizeModifier(project.priority),
+          "Priority: " + project.priority
+        );
+
+        header.append(title, status);
+        metadata.append(
+          createMetadataItem("Owner", project.owner, "O"),
+          createMetadataItem("Recent activity", project.recentActivity, "↗")
+        );
+        footer.append(priority);
+        card.append(header, summary, metadata, footer);
+        return card;
+      }
+
+      function validateProjects(data) {
+        if (!data || typeof data !== "object" || !Array.isArray(data.projects)) {
+          throw new DataContractError(
+            'Project data must contain a top-level "projects" array.'
+          );
+        }
+
+        data.projects.forEach((project, index) => {
+          if (!project || typeof project !== "object") {
+            throw new DataContractError(
+              "Project " + (index + 1) + " must be an object."
+            );
+          }
+
+          requiredFields.forEach((field) => {
+            if (
+              typeof project[field] !== "string" ||
+              project[field].trim().length === 0
+            ) {
+              throw new DataContractError(
+                "Project " + (index + 1) + ' must have a non-empty "' + field + '" value.'
+              );
+            }
+          });
+        });
+
+        return data.projects;
+      }
+
+      async function loadProjects() {
+        setStatus("Loading project data…");
+
+        let response;
+        try {
+          response = await fetch("project-data.json", {
+            headers: { Accept: "application/json" }
+          });
+        } catch (error) {
+          throw new DataFetchError(
+            "The project data could not be reached. Start the dashboard with the provided local server and try again."
+          );
+        }
+
+        if (!response.ok) {
+          throw new DataFetchError(
+            "The project data request failed with status " + response.status + "."
+          );
+        }
+
+        let data;
+        try {
+          data = await response.json();
+        } catch (error) {
+          throw new DataContractError(
+            "The project data file is malformed and could not be read as JSON."
+          );
+        }
+
+        return validateProjects(data);
+      }
+
+      async function initializeDashboard() {
+        try {
+          const projects = await loadProjects();
+
+          if (projects.length === 0) {
+            showState(
+              "empty-state",
+              "No projects yet",
+              "There are no projects in the current project data."
+            );
+            return;
+          }
+
+          const cards = projects.map(createProjectCard);
+          projectList.replaceChildren(...cards);
+          setStatus(projects.length + " projects loaded.");
+        } catch (error) {
+          const message = error instanceof Error
+            ? error.message
+            : "An unexpected error occurred while loading project data.";
+          showState("error-state", "Unable to load projects", message);
+        }
+      }
+
+      initializeDashboard();
+    </script>
+  </body>
+</html>

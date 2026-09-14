@@ -1,0 +1,36 @@
+{
+  "projects": [
+    {
+      "name": "Contributor Onboarding Guide",
+      "owner": "Mona Patel",
+      "status": "On track",
+      "recentActivity": "Updated the first-contribution walkthrough and requested reviewer feedback.",
+      "priority": "High",
+      "summary": "A practical guide that helps new contributors set up, find a starter task, and open their first pull request."
+    },
+    {
+      "name": "Issue Triage Refresh",
+      "owner": "Diego Ramos",
+      "status": "In progress",
+      "recentActivity": "Added labels for good-first-issues and documented the weekly triage rotation.",
+      "priority": "Medium",
+      "summary": "A shared triage process that makes it easier for contributors to discover actionable, well-scoped work."
+    },
+    {
+      "name": "Accessibility Review",
+      "owner": "Aisha Khan",
+      "status": "Review",
+      "recentActivity": "Keyboard navigation findings are ready for maintainers to review.",
+      "priority": "High",
+      "summary": "An audit of common contribution paths so the project remains usable with keyboard and assistive technology."
+    },
+    {
+      "name": "Release Notes Template",
+      "owner": "Jordan Lee",
+      "status": "Planned",
+      "recentActivity": "Collected examples from the last three releases and opened a template proposal.",
+      "priority": "Low",
+      "summary": "A reusable release-notes template that gives contributors a clear way to describe changes and acknowledgements."
+    }
+  ]
+}
